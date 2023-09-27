@@ -76,6 +76,21 @@ def fromAbsRelTimestamp(absRelTimestamp:str,
 		except:
 			return default
 
+def fromAbsRelDateObject(absRelTimestamp:str) -> Optional[datetime]:
+	""" Parse a ISO 8601 string and return a UTC-based POSIX timestamp as a datetime object 
+
+	Args:
+		absRelTimestamp (str): A string with either a stringified integer that represents a POSIX UTC-based timestamp,
+				or a ISO 8601 period timestamp.
+
+	Returns:
+		Optional[datetime]: A datetime object of UTC-based date
+	"""
+	try:
+		return isodate.parse_datetime(absRelTimestamp).replace(tzinfo = timezone.utc)
+	except Exception as e:
+		None
+
 
 def fromDuration(duration:str) -> float:
 	"""	Convert a duration to a number of seconds (float). 
@@ -132,6 +147,14 @@ def utcTime() -> float:
 			Float with current UTC-based POSIX time.
 	"""
 	return datetime.now(tz = timezone.utc).timestamp()
+
+def utcTimeObject() -> datetime:
+	""" Return the current time's timestamp, but relative to UTC.
+
+	Returns:
+		datetime: python datetime object with current UTC-based POSIX time.
+	"""
+	return datetime.now(tz = timezone.utc)
 
 
 def timeUntilTimestamp(ts:float) -> float:
@@ -382,3 +405,11 @@ def cronInPeriod(cronPattern:Union[str,
 
 	return False, None
 
+if __name__ == "__main__":
+	et = "20280510T041431,267017"
+	x = fromAbsRelTimestamp(et, withMicroseconds=False)
+	print(x)	
+ 
+	tmp = toISO8601Date(utcTime(), readable=True)
+	print(tmp)
+    

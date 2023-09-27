@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 from typing import Callable, cast, List, Optional, Sequence
+from enum import Enum
+from datetime import datetime
 
 import os, shutil
 from threading import Lock
@@ -34,6 +36,7 @@ from ..resources.Resource import Resource
 from ..resources.ACTR import ACTR
 from ..resources.Factory import resourceFromDict
 from ..services.Logging import Logging as L
+from ..services.StorageMongo import MongoBinding
 
 
 # Constants for database and table names
@@ -46,6 +49,11 @@ _batchNotifications = 'batchNotifications'
 _statistics = 'statistics'
 _actions = 'actions'
 _requests = 'requests'
+
+
+class Database(Enum):
+    TINYDB		= 1
+    MONGODB 	= 2
 
 
 class Storage(object):
@@ -62,6 +70,7 @@ class Storage(object):
 		'dbPath',
 		'dbReset',
 		'db',
+		'dbMode'
 	)
 
 	def __init__(self) -> None:
@@ -71,6 +80,11 @@ class Storage(object):
 		# create data directory
 		self._assignConfig()
 
+		if self.dbMode == Database.MONGODB:
+			self.db = MongoBinding()
+			L.isInfo and L.log('Storage initialized')
+			return
+      
 		if not self.inMemory:
 			if self.dbPath:
 				L.isInfo and L.log('Using data directory: ' + self.dbPath)
@@ -109,13 +123,18 @@ class Storage(object):
 		return True
 
 
+	def isMongoDB(self) -> bool:
+		return (self.dbMode == Database.MONGODB)
+
+
 	def _assignConfig(self) -> None:
 		"""	Assign default configurations.
 		"""
-		self.inMemory 	= Configuration.get('database.inMemory')
-		self.dbPath 	= Configuration.get('database.path')
-		self.dbReset 	= Configuration.get('database.resetOnStartup') 
-
+		self.inMemory 		 = Configuration.get('database.inMemory')
+		self.dbPath 		 = Configuration.get('database.path')
+		self.dbReset 		 = Configuration.get('database.resetOnStartup') 
+		self.dbMode		     = Database.MONGODB if Configuration.get('database.mongo.enable') == True else Database.TINYDB
+   
 
 	def purge(self) -> None:
 		"""	Reset and clear the databases.
@@ -286,7 +305,9 @@ class Storage(object):
 				List of resource *Document* objects	. 
 		"""
 		# L.logDebug(f'Retrieving all resources ty: {ty}')
-		return self.db.searchResources(ty = int(ty))
+		tmp = self.db.searchResources(ty = int(ty))
+		L.logDebug(f'result: {tmp}')
+		return tmp
 
 
 	def updateResource(self, resource:Resource) -> Resource:
@@ -415,6 +436,68 @@ class Storage(object):
 				List of `Resource` objects.
 		"""
 		return	[ res	for each in self.db.discoverResourcesByFilter(filter)
+						if (res := resourceFromDict(each))
+				]
+  
+	def retrieveLatestOldestResource(self, oldest: bool, ty: int, pi: Optional[str]) -> Optional[Resource]:
+		""" Retrieve latest or oldest resource
+
+		Args:
+			oldest (bool): True if want to find oldest, False otherwise
+			ty (int): Resource type to retrieve
+			pi (Optional[str]): Find specific resource that has pi as parents
+
+		Returns:
+			Optional[Resource]: Resource or None
+		"""
+		if (resource := self.db.retrieveLatestOldestResource(oldest, ty, pi)):
+			return resourceFromDict(resource)
+		return None
+
+
+	def retrieveResourcesByContain(self, 
+                                field: str, 
+                                contain: Optional[str] = None,
+                                startswith: Optional[str] = None,
+                                endswith: Optional[str] = None,
+                                filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
+		""" Retrieve resources by checking value exist in array field
+
+		Args:
+			field (str): Target field to find
+			contain (str): Value to find in an array
+
+		Returns:
+			list[Resource]: List of found resources
+		"""
+  
+		temporaryResult = self.db.retrieveResourcesByContain(field, contain, startswith, endswith)
+		result = []
+
+		# Do filter function callback
+		if filter:
+			for res in temporaryResult:
+				if filter(res):
+					result.append(res)
+		else:
+			result = temporaryResult
+  
+		return  [ res for each in result
+					if (res := resourceFromDict(each))
+				]
+  
+	
+	def retrieveResourcesByLessDate(self, field: str, dt: datetime) -> list[Resource]:
+		""" Retrieve resource by searching date field that less than provided datetime
+
+		Args:
+			field (str): Target field of date value that will search
+            dt (datetime): Filter value in python datetime object
+
+		Returns:
+			list[Resource]: List of Resource data that match filter
+		"""
+		return [ res	for each in self.db.retrieveResourcesByLessDate(field, dt)
 						if (res := resourceFromDict(each))
 				]
 
