@@ -269,6 +269,35 @@ resetOnStartup=false
 writeDelay=1
 
 ;
+; Database MongoDB settings
+;
+[database.mongo]
+; Enable or disable mongo
+enable=false
+; Database credential
+username=
+password=
+; Set Database name
+dbname=
+; IP of ferret db or just using container name if bridged using docker network
+host=
+port=27017
+; maxPoolSize: Controls the maximum number of connections in the pool. Default 30
+maxPool=30
+; minPoolSize: Ensures a minimum number of connections are always available. Default 5
+minPool=5
+; maxIdleTimeMS: Closes idle connections after a specified period to free up resources (in milliseconds). Default 30 seconds
+maxIdleTime=30000
+; serverSelectionTimeoutMS: Limits the time spent selecting a MongoDB server (in milliseconds). Default 5 seconds
+timeout=5000
+; socketTimeoutMS: Controls the timeout for socket operations, helping manage long-running operations (in milliseconds). Default 5 seconds
+socketTimeout=5000
+; connectTimeoutMS: Sets the timeout for establishing a new connection (in milliseconds). Default 5 seconds
+connectTimeout=5000
+; waitQueueTimeoutMS: Manages the time spent waiting for a connection from the pool when all connections are in use (in milliseconds). Default 5 seconds
+waitQueueTimeout=5000
+
+;
 ;	Settings for self-registrations of some resources
 ;
 

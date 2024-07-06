@@ -39,10 +39,20 @@ class MongoBinding():
         username         = Configuration.get('database.mongo.username')
         password         = Configuration.get('database.mongo.password')
         host             = Configuration.get('database.mongo.host')
-        port:int         = Configuration.get('database.mongo.port')
+        port             = Configuration.get('database.mongo.port')
+
+        uri                  = f'mongodb://{username}:{password}@{host}:{port}/{self.__DBNAME}?authMechanism=PLAIN'
+        max_pool_size:int    = Configuration.get('database.mongo.maxPool')  
+        min_pool_size:int    = Configuration.get('database.mongo.minPool')  
+        timeout:int          = Configuration.get('database.mongo.timeout')  
+        max_idle_time:int    = Configuration.get('database.mongo.maxIdleTime') 
+        socket_timeout:int   = Configuration.get('database.mongo.socketTimeout') 
+        connect_timeout:int  = Configuration.get('database.mongo.connectTimeout')
+        wait_queue:int       = Configuration.get('database.mongo.waitQueueTimeout')
 
         # Initiate connection to mongodb server
-        self._client = MongoClient(f'mongodb://{username}:{password}@{host}/{self.__DBNAME}?authMechanism=PLAIN', port)
+        self._client = self.connect_to_mongodb_with_pool(uri, max_pool_size, min_pool_size, max_idle_time, timeout,
+                                                         socket_timeout, connect_timeout, wait_queue)
         self._db = self._client[self.__DBNAME]
         
         # TODO: Connection pool; Actually it's already enabled on default
@@ -768,6 +778,33 @@ class MongoBinding():
     #
     #   Internal functions
     #
+    def connect_to_mongodb_with_pool(
+            uri, max_pool_size, min_pool_size, max_idle_time,
+            timeout, socket_timeout, connect_timeout,
+            wait_queue_timeout
+        ):
+        try:
+            # Create a MongoClient with connection pool settings
+            client = MongoClient(
+                uri,
+                maxPoolSize=max_pool_size,
+                minPoolSize=min_pool_size,
+                maxIdleTimeMS=max_idle_time,
+                serverSelectionTimeoutMS=timeout,
+                socketTimeoutMS=socket_timeout,
+                connectTimeoutMS=connect_timeout,
+                waitQueueTimeoutMS=wait_queue_timeout
+            )
+            
+            # Attempt to connect to the server
+            client.admin.command('ping')
+            
+            L.isInfo and L.log("Connection to MongoDB with connection pool successful!")
+            return client
+        
+        except ConnectionError as e:
+            L.logErr("Connection failed", exc=e)
+            return None
         
     def _setupDatabase(self):
         """ Setup mongo database by create acme-cse collection if not exist and add unique index of respective collection

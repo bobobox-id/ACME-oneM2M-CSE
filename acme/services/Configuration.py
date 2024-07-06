@@ -305,7 +305,14 @@ class Configuration(object):
 				'database.mongo.username'				: config.get('database.mongo', 'username', 							fallback = 'username'),	
 				'database.mongo.password'				: config.get('database.mongo', 'password', 							fallback = 'password'),	
 				'database.mongo.host'					: config.get('database.mongo', 'host', 								fallback = '127.0.0.1'),
-				'database.mongo.port'					: config.getint('database.mongo', 'port', 							fallback = 27017),		
+				'database.mongo.port'					: config.getint('database.mongo', 'port', 							fallback = 27017),
+				'database.mongo.maxPool'					: config.getint('database.mongo', 'maxPool', 							fallback = 30),
+				'database.mongo.minPool'					: config.getint('database.mongo', 'minPool', 							fallback = 5),
+				'database.mongo.timeout'					: config.getint('database.mongo', 'timeout', 							fallback = 5000),	
+				'database.mongo.maxIdleTime'					: config.getint('database.mongo', 'maxIdleTime', 							fallback = 30000),	
+				'database.mongo.socketTimeout'					: config.getint('database.mongo', 'socketTimeout', 							fallback = 5000),	
+				'database.mongo.connectTimeout'					: config.getint('database.mongo', 'connectTimeout', 							fallback = 5000),	
+				'database.mongo.waitQueueTimeout'					: config.getint('database.mongo', 'waitQueueTimeout', 							fallback = 5000),		
 	
 
 				#
